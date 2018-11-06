@@ -1,11 +1,13 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const PORT =  3000;
+const PORT = process.env.PORT ||  3000;
+const cors = require ('cors');
 const app = express();
 const {UserS,BookS} = require('./ClienteBS');
 
 app.use(bodyParser.urlencoded({extended:true})) 
 app.use(bodyParser.json())
+app.use(cors())
 
 
 //CRUD de Usuarios
