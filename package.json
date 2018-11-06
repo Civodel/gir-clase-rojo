@@ -1,0 +1,18 @@
+{
+  "name": "bookshare",
+  "version": "1.0.0",
+  "description": "JSON BS",
+  "main": "BS-Server.js",
+  "scripts": {
+    "start": "node Bs-Serer.js",
+    "demon": "nodemon Bs-Server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.16.4",
+    "mongoose": "^5.3.9",
+    "moongoose": "0.0.5"
+  }
+}
