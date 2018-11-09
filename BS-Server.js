@@ -4,6 +4,8 @@ const PORT = process.env.PORT ||  3000;
 const cors = require ('cors');
 const app = express();
 const {UserS,BookS} = require('./ClienteBS');
+const axios= require('axios')
+
 
 app.use(bodyParser.urlencoded({extended:true})) 
 app.use(bodyParser.json())
@@ -14,19 +16,54 @@ app.use(cors())
 
 
 app.post('/bookshare/nuevousuario', (req,res)=>{
-    const {nombre,bsusername,biografia,generosfavoritos,libros}= req.body
+    const {usuario,nombre,bsusername,correo,contraseña,biografia,generosfavoritos,libros}= req.body
     const nuevoUsuario= UserS({
+        usuario,
         nombre,
         bsusername,
+        correo,
+        contraseña,
         biografia,
         generosfavoritos,
         libros
     })
+    
     nuevoUsuario.save((error,nuevousuario)=>{
         error
-        ? res.status(409).send(error)
-        : res.status(200).send(nuevousuario)
+        ? res.status(409).send({message: "usuario/correo ya existente", error}) 
+        : res.status(200).send({message:"usuario creado con exito",nuevousuario})
     })
+    /*
+if(UserS.findOne({bsusername:nuevoUsuario.bsusername},()=>{res.send(true)})== true){
+    console.log("puto el que lo lea");
+}
+else{console.log("tambien puto");}
+       /*
+     console.log(UserS.findOne({bsusername:nuevoUsuario.bsusername},(error,bsusername)=>{
+         bsusername
+         ? res.status(200).send({message:"Username already exist"})
+         : res.status(404).send(error)
+
+     })
+     
+     
+);
+*/
+
+/*
+    if( bsusername ===((bsusername)=>{
+        UserS.findOne({ bsusername: bsusername}).exec()
+        .then(res.status(200).send({message:"usuario existente"}))
+        .catch(
+            nuevoUsuario.save((error,nuevousuario)=>{
+                error
+                ? res.status(409).send(error) 
+                : res.status(200).send({message:"usuario creado con exito",nuevousuario})
+            })
+        )
+    }))
+    */
+
 })
 
 app.get('/bookshare/usuario/:uid',(req,res)=>{
@@ -63,17 +100,18 @@ app.delete('/bookshare/dusuario/:uid',(req,res)=>{
     .then(dusuario=>{
         dusuario
         ? res.status(200).send({message:"usuario borrado con exito"})
-        : releaseEvents.status(404).send({message:"usuario no encontrado"})
+        : res.status(404).send({message:"usuario no encontrado"})
     })
 })
 
 //CRUD de Libros
 
 app.post('/bookshare/nuevolibro',(req,res)=>{
-    const {titulo,portada,genero,autor,numerodepaginas,editorial,formato,detalles,bsusername,dueño}=req.body;
+    const {libro,titulo,portada,genero,autor,numerodepaginas,editorial,formato,detalles,bsusername,dueño,estado}=req.body;
     const nuevoLibro = BookS({
+        libro,
         titulo,
-        portada,
+        portada ,
         genero,
         autor,
         numerodepaginas,
@@ -81,13 +119,25 @@ app.post('/bookshare/nuevolibro',(req,res)=>{
         formato,
         detalles,
         bsusername,
-        dueño
+        dueño,
+        estado
     })
-    nuevoLibro.save((error,nuevolibro)=>{
-        error 
-        ? res.status(409).send(error)
-        : res.status(200).send(nuevolibro)
+    
+    const urlp = `https://www.googleapis.com/books/v1/volumes?q=${nuevoLibro.titulo}`
+
+     axios.get(urlp)
+    .then(response=>{
+        
+        nuevoLibro.portada=response.data.items[0].volumeInfo.imageLinks.thumbnail
+        nuevoLibro.save((error,nuevolibro)=>{
+            nuevoLibro
+            ? res.status(200).send({message:"Libro creado con exito",nuevolibro})
+            : res.status(409).send(error)
+        }) 
     })
+    .catch(error=>res.send(error))
+
+
 })
 
 app.get("/bookshare/libros",(req,res)=>{
@@ -104,7 +154,7 @@ app.get("/bookshare/libros",(req,res)=>{
 
 app.get('/bookshare/libro/:lid',(req,res)=>{
     const {lid} = req.params
-    BookS.findById(lib).exec()
+    BookS.findById(lid).exec()
     .then(libro =>{
         libro
         ? res.status(200).send(libro)
@@ -114,22 +164,62 @@ app.get('/bookshare/libro/:lid',(req,res)=>{
 })
 
 app.put('/bookshare/mlibro/:lib',(req,res)=>{
-    const {lib} = req.params
-    BookS.findByIdAndUpdate(lib,{$set:req.body},{new:true}).exec()
+    const {lid} = req.params
+    BookS.findByIdAndUpdate(lid,{$set:req.body},{new:true}).exec()
     .then(librom=>res.send(librom))
     .catch(error => res.send(error))
 })
 
 app.delete('bookshare/dlibro/:lid',(req,res)=>{
     const {lid} = req.params
-    BookS.findByIdAndDelete(lib).exec()
+    BookS.findByIdAndDelete(lid).exec()
     .then(libro=>{
         libro
         ? res.status(200).send({message:"libro borrado con exito"})
         : res.status(404).send({message:"libro no encontrado "})
     })
 })
+//CRUD de Prestamo
+/*
+app.post('bookshare/nuevoprestamo',(req,res)=>{
+    const {prestamo,dueño,usuariobeneficiado,libros,esta_prestado}=req.body
+    const nuevoPrestamo= PrestamoS({
+        prestamo,
+        dueño,
+        usuariobeneficiado,
+        libros,
+        esta_prestado
+    })
+    nuevoPrestamo.save((error,nuevoprestamo)=>{
+        prestamo
+        ? res.status(200).send(nuevoprestamo)
+        : res.status(404).send(error)        
+    })
+})
 
+app.get('bookshare/prestamos',(req,res)=>{
+    PrestamoS.find({}).exec()
+    .then(prestamos=>{
+        prestamos
+        UserS.populate(prestamos,{path:"dueño"},(error,prestamos)=>{
+            prestamos
+         ? res.status(200).send(prestamos)
+        : res.status(404).send({message:"sin dueño",error})
+        })
+        UserS.populate(prestamos,{path:"usuariobeneficiado"},(error,prestamos)=>{
+            prestamos
+         ? res.status(200).send(prestamos)
+        : res.status(404).send({message:"sin dueño",error})
+        })
+        BookS.populate(dueño,{path:"libros"},(error,dueño)=>{
+            dueño
+           ? res.status(200).send(dueño)
+           : res.status(404).send({message:"sin libros",error})
+            
+        })
+    })
+    })
+*/
 //pruebas
 
 /*
