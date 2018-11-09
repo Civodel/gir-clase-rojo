@@ -63,19 +63,19 @@ const bookSchema = new Schema({
         require:'Debe de tener un estado valido',
          default:'No se encuentra prestado'}
 });
-/*const prestamoSchema = new Schema({
+const prestamoSchema = new Schema({
     prestamo:ObjectID,
-     dueño:[{ 
+     dueño:{ 
         type: mongoose.Schema.ObjectId, 
-        ref:'UserS'}],
-    usuariobeneficiado:[{ 
+        ref:'UserS'},
+    usuariobeneficiado:{ 
         type: mongoose.Schema.ObjectId, 
-        ref:'UserS'}],
+        ref:'UserS'},
     libros:[{
             type: mongoose.Schema.ObjectId,
             ref: 'BookS' }],
-    esta_prestado:{type:Boolean,default:false}
-})*/
-// const PrestamoS = mongoose.model('PrestamoS',prestamoSchema)
+    esta_prestado:{type:Boolean,default:true}
+});
+const PrestamoS = mongoose.model('PrestamoS',prestamoSchema)
 const BookS = mongoose.model('BookS',bookSchema)
-module.exports = {UserS,BookS}
+module.exports = {UserS,BookS,PrestamoS}

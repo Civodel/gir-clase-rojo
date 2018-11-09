@@ -3,7 +3,7 @@ const bodyParser = require('body-parser');
 const PORT = process.env.PORT ||  3000;
 const cors = require ('cors');
 const app = express();
-const {UserS,BookS} = require('./ClienteBS');
+const {UserS,BookS,PrestamoS} = require('./ClienteBS');
 const axios= require('axios')
 
 
@@ -129,9 +129,9 @@ app.post('/bookshare/nuevolibro',(req,res)=>{
     .then(response=>{
         
         nuevoLibro.portada=response.data.items[0].volumeInfo.imageLinks.thumbnail
-        nuevoLibro.save((error,nuevolibro)=>{
+        nuevoLibro.save((error,nuevoLibro)=>{
             nuevoLibro
-            ? res.status(200).send({message:"Libro creado con exito",nuevolibro})
+            ? res.status(200).send({message:"Libro creado con exito",nuevoLibro})
             : res.status(409).send(error)
         }) 
     })
@@ -180,8 +180,8 @@ app.delete('bookshare/dlibro/:lid',(req,res)=>{
     })
 })
 //CRUD de Prestamo
-/*
-app.post('bookshare/nuevoprestamo',(req,res)=>{
+
+app.post('/bookshare/nuevoprestamo',(req,res)=>{
     const {prestamo,dueño,usuariobeneficiado,libros,esta_prestado}=req.body
     const nuevoPrestamo= PrestamoS({
         prestamo,
@@ -191,35 +191,92 @@ app.post('bookshare/nuevoprestamo',(req,res)=>{
         esta_prestado
     })
     nuevoPrestamo.save((error,nuevoprestamo)=>{
-        prestamo
+        nuevoprestamo
         ? res.status(200).send(nuevoprestamo)
         : res.status(404).send(error)        
     })
 })
 
-app.get('bookshare/prestamos',(req,res)=>{
+app.get('/bookshare/prestamos',(req,res)=>{
     PrestamoS.find({}).exec()
     .then(prestamos=>{
         prestamos
-        UserS.populate(prestamos,{path:"dueño"},(error,prestamos)=>{
-            prestamos
-         ? res.status(200).send(prestamos)
-        : res.status(404).send({message:"sin dueño",error})
-        })
-        UserS.populate(prestamos,{path:"usuariobeneficiado"},(error,prestamos)=>{
-            prestamos
-         ? res.status(200).send(prestamos)
-        : res.status(404).send({message:"sin dueño",error})
-        })
-        BookS.populate(dueño,{path:"libros"},(error,dueño)=>{
-            dueño
-           ? res.status(200).send(dueño)
+        UserS.populate(prestamos,{path:"dueño"},(error,dueño)=>{
+            UserS.populate(prestamos,{path:"usuariobeneficiado"},(error,usuariobeneficiado)=>{
+                 BookS.populate(dueño,{path:"libros"},(error,libros)=>{
+                     libros
+                     usuariobeneficiado
+                     dueño
+                     ? res.status(200).send(libros,usuariobeneficiado,dueño)
+                     : res.status(404).send(error)
+           
+           
+         /*           libros
+           ? res.status(200).send(libros)
            : res.status(404).send({message:"sin libros",error})
-            
+           */ 
         })
+               
+                
+               
+               
+               
+               
+               
+            /*    usuariobeneficiado
+             ? res.status(200).send(usuariobeneficiado)
+            : res.status(404).send({message:"sin dueño",error})
+    */ })  
+
+
+
+/*
+            dueño
+        
+         ? res.status(200).send(dueño)
+        : res.status(404).send({message:"sin dueño",error})
+*/}) 
+    
     })
     })
-*/
+
+app.get('/bookshare/prestamo/:pid',(req,res)=>{
+    const {pid}= req.params
+    PrestamoS.findById(pid).exec()
+    .then(prestamos=>{
+        prestamos
+        UserS.populate(prestamos,{path:"dueño"},(error,dueño)=>{
+            UserS.populate(prestamos,{path:"usuariobeneficiado"},(error,usuariobeneficiado)=>{
+                 BookS.populate(dueño,{path:"libros"},(error,libros)=>{
+                     libros
+                     usuariobeneficiado
+                     dueño
+                     ? res.status(200).send(libros,usuariobeneficiado,dueño)
+                     : res.status(404).send(error)
+           
+                 })
+                })
+            })
+    })
+})
+
+app.put('/bookshare/cprestamo/:pid',(req,res)=>{
+    const {pid}= req.params
+    PrestamoS.findByIdAndUpdate(pid,{$set:req.body},{new:true}).exec()
+    .then(nuevpoPrestamo => res.status(200).send(nuevpoPrestamo))
+    .catch(error => res.status(400).send(error))
+})
+
+app.delete('/bookshare/dprestamo/:pid',(req,res)=>{
+    const {pid}= req.params
+    PrestamoS.findByIdAndDelete(pid).exec()
+    .then(dprestamo=>{
+        dprestamo
+        ? res.status(200).send({message:"prestamo borrado con exito"})
+        : res.status(404).send({message:"prestamo no encontrado"})
+    })
+    
+})
 //pruebas
 
 /*
